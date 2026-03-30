@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="LungCancerDX – AI-powered CT scan analysis for early lung cancer detection using ensemble deep learning." />
+  <title>LungCancerDX | AI Lung Cancer Detection</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<!-- ============================================================ HEADER -->
+<header class="header" id="header">
+  <nav class="nav container">
+    <div class="nav__logo">
+      <div class="nav__logo-icon">🫁</div>
+      <div>
+        <span class="nav__logo-text">LungCancer<span class="accent">DX</span></span>
+        <span class="nav__logo-sub">AI Diagnostic System</span>
+      </div>
+    </div>
+    <ul class="nav__links" id="navLinks">
+      <li><a href="#home"     class="nav__link active">Home</a></li>
+      <li><a href="#scanner"  class="nav__link">Scan</a></li>
+      <li><a href="#models"   class="nav__link">Models</a></li>
+      <li><a href="#about"    class="nav__link">About</a></li>
+    </ul>
+    <div class="nav__status" id="apiStatus">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText">Connecting…</span>
+    </div>
+    <button class="nav__toggle" id="navToggle" aria-label="Toggle menu">☰</button>
+  </nav>
+</header>
+
+<!-- ============================================================ HERO -->
+<section class="hero" id="home">
+  <div class="hero__bg-grid"></div>
+  <div class="hero__orb hero__orb--1"></div>
+  <div class="hero__orb hero__orb--2"></div>
+  <div class="hero__orb hero__orb--3"></div>
+
+  <div class="container hero__content">
+    <div class="hero__badge">
+      <span class="badge-dot"></span>
+      Final Year Project · IQ-OTH/NCCD Dataset · 1,097 CT Scans
+    </div>
+
+    <h1 class="hero__title">
+      Early Lung Cancer<br />
+      <span class="gradient-text">Detection with AI</span>
+    </h1>
+
+    <p class="hero__desc">
+      An ensemble of <strong>5 deep learning models</strong> — ResNet-50, EfficientNet-B0,
+      DenseNet-121, MobileNetV3, and VGG-16 — trained on real CT scan data to classify
+      <em>Benign</em>, <em>Malignant</em>, and <em>Normal</em> cases.
+    </p>
+
+    <div class="hero__actions">
+      <a href="#scanner" class="btn btn--primary" id="heroScanBtn">
+        <span>🔬</span> Scan CT Image
+      </a>
+      <a href="#models" class="btn btn--ghost">
+        <span>📊</span> View Models
+      </a>
+    </div>
+
+    <div class="hero__stats">
+      <div class="hero__stat">
+        <span class="hero__stat-value" id="statTotal">1,097</span>
+        <span class="hero__stat-label">Total Scans</span>
+      </div>
+      <div class="hero__stat-divider"></div>
+      <div class="hero__stat">
+        <span class="hero__stat-value">5</span>
+        <span class="hero__stat-label">CNN Models</span>
+      </div>
+      <div class="hero__stat-divider"></div>
+      <div class="hero__stat">
+        <span class="hero__stat-value">3</span>
+        <span class="hero__stat-label">Classes</span>
+      </div>
+      <div class="hero__stat-divider"></div>
+      <div class="hero__stat">
+        <span class="hero__stat-value accent-text">~95%+</span>
+        <span class="hero__stat-label">Best Accuracy</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero__scroll-hint">
+    <span>↓</span>
+  </div>
+</section>
+
+<!-- ============================================================ SCANNER -->
+<section class="scanner-section" id="scanner">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-tag">🔬 AI Scan Engine</div>
+      <h2 class="section-title">Upload & Diagnose</h2>
+      <p class="section-desc">Upload a lung CT scan image to receive an instant AI-powered diagnosis with ensemble model confidence scores.</p>
+    </div>
+
+    <div class="scanner-grid">
+      <!-- Upload Panel -->
+      <div class="panel panel--upload">
+        <div class="panel__header">
+          <h3 class="panel__title">CT Scan Upload</h3>
+          <span class="panel__badge">Step 1</span>
+        </div>
+
+        <div class="drop-zone" id="dropZone" role="button" tabindex="0"
+             aria-label="Upload CT scan image">
+          <div class="drop-zone__icon">📷</div>
+          <p class="drop-zone__title">Drag & Drop CT Image</p>
+          <p class="drop-zone__sub">or click to browse · JPG, PNG, JPEG</p>
+          <input type="file" id="fileInput" accept="image/*" hidden />
+        </div>
+
+        <div class="preview-box" id="previewBox" hidden>
+          <div class="preview-box__header">
+            <span>Preview</span>
+            <button class="btn-icon" id="clearBtn" title="Clear">✕</button>
+          </div>
+          <img id="previewImg" src="" alt="CT scan preview" class="preview-box__img" />
+          <div class="preview-box__meta" id="previewMeta"></div>
+        </div>
+
+        <button class="btn btn--primary btn--full" id="analyzeBtn" disabled>
+          <span id="analyzeBtnSpinner" class="spinner hidden"></span>
+          <span id="analyzeBtnText">🔍 Analyze Scan</span>
+        </button>
+
+        <!-- Webcam capture -->
+        <div class="webcam-row">
+          <button class="btn btn--ghost btn--sm" id="webcamBtn">📸 Camera Capture</button>
+          <button class="btn btn--ghost btn--sm" id="sampleBtn">🖼 Load Sample</button>
+        </div>
+
+        <video id="webcamVideo" class="webcam-video" autoplay hidden></video>
+        <button class="btn btn--primary btn--sm" id="captureBtn" hidden>📷 Capture Frame</button>
+      </div>
+
+      <!-- Results Panel -->
+      <div class="panel panel--results" id="resultsPanel">
+        <div class="panel__header">
+          <h3 class="panel__title">Diagnosis Result</h3>
+          <span class="panel__badge">Step 2</span>
+        </div>
+
+        <div class="placeholder-state" id="placeholderState">
+          <div class="placeholder-state__icon">🩺</div>
+          <p>Upload a CT scan to begin analysis</p>
+        </div>
+
+        <div class="result-content" id="resultContent" hidden>
+
+          <!-- Primary Prediction -->
+          <div class="result-card" id="resultCard">
+            <div class="result-card__label">Prediction</div>
+            <div class="result-card__value" id="predLabel">—</div>
+            <div class="result-card__confidence" id="predConf">—% confidence</div>
+            <div class="result-card__risk" id="riskBadge">—</div>
+          </div>
+
+          <!-- Probability Bars -->
+          <div class="prob-section">
+            <h4 class="prob-section__title">Class Probabilities</h4>
+            <div id="probBars"></div>
+          </div>
+
+          <!-- Per-model breakdown -->
+          <div class="model-breakdown" id="modelBreakdown">
+            <h4 class="prob-section__title">Model Breakdown</h4>
+            <div id="modelBreakdownBody"></div>
+          </div>
+
+          <!-- Clinical Recommendation -->
+          <div class="recommendation-box" id="recommendationBox">
+            <div class="recommendation-box__icon">💊</div>
+            <div>
+              <strong>Clinical Recommendation</strong>
+              <p id="recommendationText">—</p>
+            </div>
+          </div>
+
+          <!-- Meta info -->
+          <div class="meta-row" id="metaRow"></div>
+
+          <!-- Action buttons -->
+          <div class="result-actions">
+            <button class="btn btn--ghost btn--sm" id="resetBtn">🔄 New Scan</button>
+            <button class="btn btn--primary btn--sm" id="downloadReportBtn">📄 Download Report</button>
+          </div>
+        </div>
+      </div>
+    </div><!-- /scanner-grid -->
+  </div>
+</section>
+
+<!-- ============================================================ MODELS -->
+<section class="models-section" id="models">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-tag">🧠 Ensemble Architecture</div>
+      <h2 class="section-title">Model Suite</h2>
+      <p class="section-desc">Five state-of-the-art convolutional neural networks fine-tuned on lung CT data, combined via weighted soft-voting.</p>
+    </div>
+
+    <div class="model-cards" id="modelCards">
+      <!-- populated by JS -->
+    </div>
+
+    <div class="ensemble-explainer">
+      <div class="ensemble-explainer__icon">⚖️</div>
+      <div>
+        <strong>Soft-Voting Ensemble</strong>
+        <p>Each model's class probability vector is multiplied by its learned weight.
+           The weighted average determines the final prediction, improving robustness over any single model.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ DATASET -->
+<section class="dataset-section" id="about">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-tag">📂 Dataset</div>
+      <h2 class="section-title">IQ-OTH/NCCD Dataset</h2>
+      <p class="section-desc">Real-world CT scan dataset collected at the Iraq-Oncology Teaching Hospital / National Center for Cancer Diseases.</p>
+    </div>
+
+    <div class="dataset-grid">
+      <div class="dataset-card dataset-card--benign">
+        <div class="dataset-card__emoji">🟡</div>
+        <div class="dataset-card__count" id="benignCount">120</div>
+        <div class="dataset-card__label">Benign Cases</div>
+        <div class="dataset-card__bar">
+          <div class="dataset-card__fill" style="width:15%"></div>
+        </div>
+      </div>
+
+      <div class="dataset-card dataset-card--malignant">
+        <div class="dataset-card__emoji">🔴</div>
+        <div class="dataset-card__count" id="malignantCount">561</div>
+        <div class="dataset-card__label">Malignant Cases</div>
+        <div class="dataset-card__bar">
+          <div class="dataset-card__fill" style="width:60%"></div>
+        </div>
+      </div>
+
+      <div class="dataset-card dataset-card--normal">
+        <div class="dataset-card__emoji">🟢</div>
+        <div class="dataset-card__count" id="normalCount">416</div>
+        <div class="dataset-card__label">Normal Cases</div>
+        <div class="dataset-card__bar">
+          <div class="dataset-card__fill" style="width:45%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pipeline steps -->
+    <div class="pipeline">
+      <h3 class="pipeline__title">Processing Pipeline</h3>
+      <div class="pipeline__steps">
+        <div class="pipeline__step">
+          <div class="pipeline__step-num">1</div>
+          <div class="pipeline__step-body">
+            <strong>Data Collection</strong>
+            <p>1,097 CT scan images across 3 classes</p>
+          </div>
+        </div>
+        <div class="pipeline__arrow">→</div>
+        <div class="pipeline__step">
+          <div class="pipeline__step-num">2</div>
+          <div class="pipeline__step-body">
+            <strong>Preprocessing</strong>
+            <p>CLAHE enhancement · Gaussian denoising · 224×224 resize</p>
+          </div>
+        </div>
+        <div class="pipeline__arrow">→</div>
+        <div class="pipeline__step">
+          <div class="pipeline__step-num">3</div>
+          <div class="pipeline__step-body">
+            <strong>Augmentation</strong>
+            <p>Flip · Rotate · Zoom · Brightness ×3 per image</p>
+          </div>
+        </div>
+        <div class="pipeline__arrow">→</div>
+        <div class="pipeline__step">
+          <div class="pipeline__step-num">4</div>
+          <div class="pipeline__step-body">
+            <strong>80/10/10 Split</strong>
+            <p>Stratified train / val / test</p>
+          </div>
+        </div>
+        <div class="pipeline__arrow">→</div>
+        <div class="pipeline__step">
+          <div class="pipeline__step-num">5</div>
+          <div class="pipeline__step-body">
+            <strong>Ensemble Inference</strong>
+            <p>Weighted soft-voting across 5 CNNs</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ FOOTER -->
+<footer class="footer">
+  <div class="container footer__inner">
+    <div class="footer__logo">🫁 LungCancer<span class="accent">DX</span></div>
+    <p class="footer__copy">
+      Final Year Project · AI-Powered Lung Cancer Diagnosis ·
+      IQ-OTH/NCCD Dataset by Aditya Mahimkar
+    </p>
+    <p class="footer__disclaimer">
+      ⚠️ For research and educational purposes only. Not a substitute for professional medical advice.
+    </p>
+  </div>
+</footer>
+
+<!-- ============================================================ TOAST -->
+<div class="toast" id="toast" role="alert"></div>
+
+<!-- Scripts -->
+<script src="/static/app.js"></script>
+</body>
+</html>

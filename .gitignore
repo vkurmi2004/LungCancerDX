@@ -1,0 +1,29 @@
+# Virtual Environment
+venv/
+env/
+.env
+
+# Cache
+__pycache__/
+*.pyc
+
+# IDEs / OS files
+.vscode/
+.idea/
+.DS_Store
+
+# Data and Models
+data_split/
+models/
+*.h5
+*.hdf5
+*.pt
+*.pth
+
+# Logs
+*.log
+
+# Frontend (if React/Node was added later)
+node_modules/
+build/
+dist/

@@ -1,0 +1,3 @@
+Model,Val Acc,Test Acc
+DenseNet121,90.0,91.89
+Ensemble,—,91.89
