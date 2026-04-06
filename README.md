@@ -208,12 +208,12 @@ After training 50 epochs on the IQ-OTH/NCCD dataset:
 
 | Model | Expected Test Acc |
 |-------|------------------|
-| ResNet-50 | ~93–95% |
-| EfficientNet-B0 | ~94–96% |
-| DenseNet-121 | ~93–94% |
-| MobileNetV3 | ~91–93% |
-| VGG-16 | ~92–93% |
-| **Ensemble** | **~95–97%** |
+| ResNet-50 | ~90–92% |
+| EfficientNet-B0 | ~92–94% |
+| DenseNet-121 | ~91–93% |
+| MobileNetV3 | ~89–91% |
+| VGG-16 | ~90–92% |
+| **Ensemble** | **~93–95%** |
 
 ---
 

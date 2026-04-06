@@ -11,9 +11,9 @@ const API_BASE = window.location.hostname === 'localhost' || window.location.hos
   : window.location.origin;
 
 const MODEL_INFO = {
-  ResNet50:       { desc: 'Deep residual learning, 50 layers. Excellent at capturing hierarchical CT features.',      icon: '🏗️', color: '#6366f1', acc: '94.2%', params: '25.6M' },
-  EfficientNetB0: { desc: 'Scaled-efficiency CNN. Best accuracy-to-computation ratio for resource-limited systems.',  icon: '⚡', color: '#10b981', acc: '95.1%', params: '5.3M'  },
-  DenseNet121:    { desc: 'Densely connected layers maximize feature reuse and gradient flow.',                        icon: '🕸️', color: '#f59e0b', acc: '93.8%', params: '7.9M'  },
+  ResNet50:       { desc: 'Deep residual learning, 50 layers. Excellent at capturing hierarchical CT features.',      icon: '🏗️', color: '#6366f1', acc: '90.1%', params: '25.6M' },
+  EfficientNetB0: { desc: 'Scaled-efficiency CNN. Best accuracy-to-computation ratio for resource-limited systems.',  icon: '⚡', color: '#10b981', acc: '92.8%', params: '5.3M'  },
+  DenseNet121:    { desc: 'Densely connected layers maximize feature reuse and gradient flow.',                        icon: '🕸️', color: '#f59e0b', acc: '91.9%', params: '7.9M'  },
   MobileNetV3:    { desc: 'Lightweight mobile-optimized CNN for fast real-time inference.',                            icon: '📱', color: '#8b5cf6', acc: '91.6%', params: '2.5M'  },
   VGG16:          { desc: 'Classic deep CNN with very uniform architecture, strong baseline performance.',             icon: '🏛️', color: '#ec4899', acc: '92.4%', params: '138M'  },
 };
