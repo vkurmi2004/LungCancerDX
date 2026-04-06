@@ -13,6 +13,11 @@
 
   <!-- Styles -->
   <link rel="stylesheet" href="/static/style.css" />
+  
+  <!-- Three.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
+  <!-- Vanilla Tilt -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js"></script>
 </head>
 <body>
 
@@ -43,6 +48,7 @@
 <!-- ============================================================ HERO -->
 <section class="hero" id="home">
   <div class="hero__bg-grid"></div>
+  <div id="heroCanvas" class="hero__canvas"></div>
   <div class="hero__orb hero__orb--1"></div>
   <div class="hero__orb hero__orb--2"></div>
   <div class="hero__orb hero__orb--3"></div>
@@ -170,6 +176,16 @@
             <div class="result-card__value" id="predLabel">—</div>
             <div class="result-card__confidence" id="predConf">—% confidence</div>
             <div class="result-card__risk" id="riskBadge">—</div>
+          </div>
+
+          <!-- Explainable AI (Grad-CAM) -->
+          <div class="gradcam-section" id="gradcamSection" hidden>
+            <h4 class="prob-section__title">AI Focus Area (Grad-CAM)</h4>
+            <div class="gradcam-view">
+              <img id="gradcamImg" src="" alt="Grad-CAM Heatmap" class="gradcam-img" />
+              <div class="gradcam-overlay">EXPLAIANABLE AI OVERLAY ACTIVE</div>
+            </div>
+            <p class="gradcam-desc">Heatmap highlights the anatomical regions contributing most significantly to the malignant classification.</p>
           </div>
 
           <!-- Probability Bars -->

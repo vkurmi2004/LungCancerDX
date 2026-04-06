@@ -5,6 +5,183 @@
 
 'use strict';
 
+// ─── 3D Visualizer ────────────────────────────────────────────────────────────
+class MedicalVisualizer3D {
+  constructor(containerId) {
+    this.container = document.getElementById(containerId);
+    if (!this.container) return;
+    
+    this.scene = new THREE.Scene();
+    this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.container.appendChild(this.renderer.domElement);
+    
+    this.mouse = new THREE.Vector2();
+    this.targetMouse = new THREE.Vector2();
+    this.points = null;
+    this.gridPoints = null;
+    this.imagePlane = null;
+    this.isScanning = false;
+    
+    this.setupScene();
+    this.animate();
+    
+    window.addEventListener('mousemove', (e) => {
+      this.targetMouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+      this.targetMouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    });
+
+    window.addEventListener('resize', () => {
+      this.camera.aspect = window.innerWidth / window.innerHeight;
+      this.camera.updateProjectionMatrix();
+      this.renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  }
+
+  setupScene() {
+    const geometry = new THREE.BufferGeometry();
+    const vertices = [];
+    const colors = [];
+    const colorA = new THREE.Color('#6366f1');
+    const colorB = new THREE.Color('#06b6d4');
+    
+    // Generate two stylized lung-lobed point clouds
+    for (let i = 0; i < 5000; i++) {
+      const side = Math.random() > 0.5 ? 1 : -1;
+      const x = side * (5 + Math.random() * 5);
+      const y = (Math.random() - 0.5) * 15;
+      const z = (Math.random() - 0.5) * 8;
+      
+      // Ellipsoid constraint for lobes
+      const lobeX = (x - side * 7) / 4;
+      const lobeY = y / 8;
+      const lobeZ = z / 4;
+      
+      if (lobeX*lobeX + lobeY*lobeY + lobeZ*lobeZ < 1) {
+        vertices.push(x, y, z);
+        const mix = Math.random();
+        colors.push(colorA.r * mix + colorB.r * (1-mix),
+                    colorA.g * mix + colorB.g * (1-mix),
+                    colorA.b * mix + colorB.b * (1-mix));
+      }
+    }
+    
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    
+    const material = new THREE.PointsMaterial({
+      size: 0.15,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.6,
+      blending: THREE.AdditiveBlending
+    });
+    
+    this.points = new THREE.Points(geometry, material);
+    this.scene.add(this.points);
+    
+    // Add a futuristic background medical grid
+    const gridGeom = new THREE.BufferGeometry();
+    const gridVerts = [];
+    for (let i = 0; i < 2000; i++) {
+      gridVerts.push((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100, (Math.random() - 0.5) * 50);
+    }
+    gridGeom.setAttribute('position', new THREE.Float32BufferAttribute(gridVerts, 3));
+    this.gridPoints = new THREE.Points(gridGeom, new THREE.PointsMaterial({ size: 0.05, color: '#4f4f4f', transparent: true, opacity: 0.3 }));
+    this.scene.add(this.gridPoints);
+
+    // Add realistic 3D Image Plane
+    const loader = new THREE.TextureLoader();
+    loader.load('/lung_viz.png', (texture) => {
+        const planeGeom = new THREE.PlaneGeometry(16, 16, 32, 32);
+        const planeMat = new THREE.MeshPhongMaterial({ 
+            map: texture, 
+            transparent: true, 
+            opacity: 0.9,
+            side: THREE.DoubleSide,
+            shininess: 100
+        });
+        this.imagePlane = new THREE.Mesh(planeGeom, planeMat);
+        this.imagePlane.position.set(12, 0, -5);
+        this.imagePlane.rotation.y = -0.3;
+        this.scene.add(this.imagePlane);
+        
+        // Add a back-light for the 3D photo
+        const light = new THREE.PointLight('#ef4444', 2, 50);
+        light.position.set(15, 5, 5);
+        this.scene.add(light);
+    });
+
+    // Add floating "nano-data" particles
+    const nanoGeom = new THREE.BufferGeometry();
+    const nanoVerts = [];
+    for (let i = 0; i < 500; i++) {
+        nanoVerts.push((Math.random() - 0.5) * 60, (Math.random() - 0.5) * 60, (Math.random() - 0.5) * 30);
+    }
+    nanoGeom.setAttribute('position', new THREE.Float32BufferAttribute(nanoVerts, 3));
+    this.nanoPoints = new THREE.Points(nanoGeom, new THREE.PointsMaterial({ 
+        size: 0.08, 
+        color: '#818cf8', 
+        transparent: true, 
+        opacity: 0.8,
+        blending: THREE.AdditiveBlending 
+    }));
+    this.scene.add(this.nanoPoints);
+
+    this.camera.position.z = 25;
+  }
+
+  setScanning(active) {
+    this.isScanning = active;
+    if (this.points) {
+      this.points.material.color.set(active ? '#ef4444' : '#6366f1');
+      this.points.material.size = active ? 0.3 : 0.15;
+    }
+  }
+
+  animate() {
+    requestAnimationFrame(() => this.animate());
+    
+    // Smooth mouse follow
+    this.mouse.x += (this.targetMouse.x - this.mouse.x) * 0.05;
+    this.mouse.y += (this.targetMouse.y - this.mouse.y) * 0.05;
+
+    if (this.points) {
+      this.points.rotation.y += this.isScanning ? 0.05 : 0.003;
+      this.points.rotation.x = this.mouse.y * 0.2;
+      this.points.rotation.z = this.mouse.x * 0.1;
+      
+      // Gentle breathing effect
+      const breathe = (Math.sin(Date.now() * 0.001) * 0.05 + 1) * (this.isScanning ? 1.2 : 1);
+      this.points.scale.set(breathe, breathe, breathe);
+    }
+
+    if (this.gridPoints) {
+      this.gridPoints.position.x = -this.mouse.x * 2;
+      this.gridPoints.position.y = -this.mouse.y * 2;
+    }
+
+    if (this.nanoPoints) {
+        this.nanoPoints.rotation.y -= 0.005;
+        this.nanoPoints.rotation.x += 0.002;
+        this.nanoPoints.position.z = Math.sin(Date.now() * 0.0005) * 5;
+    }
+
+    if (this.imagePlane) {
+        // Breathing movement
+        const breathe = Math.sin(Date.now() * 0.001) * 0.1;
+        this.imagePlane.position.y = breathe;
+        this.imagePlane.rotation.x = this.mouse.y * 0.1;
+        this.imagePlane.rotation.y = -0.3 + (this.mouse.x * 0.1);
+        
+        // Dynamic vertex wave logic could go here, but simple movement is smoother for photos
+    }
+
+    this.renderer.render(this.scene, this.camera);
+  }
+}
+
 // ─── Configuration ────────────────────────────────────────────────────────────
 const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? 'http://localhost:8000'
@@ -56,6 +233,10 @@ const el = {
   benignCount:     $('benignCount'),
   malignantCount:  $('malignantCount'),
   normalCount:     $('normalCount'),
+  
+  // Grad-CAM Elements
+  gradcamSection:   $('gradcamSection'),
+  gradcamImg:       $('gradcamImg'),
 };
 
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -331,12 +512,14 @@ async function analyze() {
   el.analyzeBtn.disabled       = true;
   el.analyzeBtnSpinner.classList.remove('hidden');
   el.analyzeBtnText.textContent = 'Analyzing…';
+  
+  if (visualizer3D) visualizer3D.setScanning(true);
 
   try {
     const formData = new FormData();
     formData.append('file', currentFile);
 
-    const res = await fetch(`${API_BASE}/api/predict`, {
+    const res = await fetch(`${API_BASE}/api/predict?include_gradcam=true`, {
       method: 'POST',
       body: formData,
       signal: AbortSignal.timeout(30000),
@@ -360,6 +543,7 @@ async function analyze() {
     el.analyzeBtn.disabled        = false;
     el.analyzeBtnSpinner.classList.add('hidden');
     el.analyzeBtnText.textContent = '🔍 Analyze Scan';
+    if (visualizer3D) visualizer3D.setScanning(false);
   }
 }
 
@@ -426,6 +610,14 @@ function renderResults(data) {
 
   // Recommendation
   el.recommendationText.textContent = data.recommendation || '—';
+
+  // Grad-CAM
+  if (data.gradcam_b64) {
+    el.gradcamSection.hidden = false;
+    el.gradcamImg.src = `data:image/png;base64,${data.gradcam_b64}`;
+  } else {
+    el.gradcamSection.hidden = true;
+  }
 
   // Meta row
   const modelsUsed = (data.models_used || []).join(', ') || 'Demo';
@@ -551,12 +743,26 @@ document.addEventListener('mousemove', e => {
 });
 
 // ─── Initialise ───────────────────────────────────────────────────────────────
+let visualizer3D;
 (async () => {
   renderModelCards({});
   await checkHealth();
 
   // Load model status & dataset stats in parallel
   Promise.all([loadModels(), loadDatasetStats()]);
+
+  // Start 3D
+  visualizer3D = new MedicalVisualizer3D('heroCanvas');
+
+  // Interactive Tilt
+  if (window.VanillaTilt) {
+      VanillaTilt.init(document.querySelectorAll(".panel"), {
+          max: 10,
+          speed: 400,
+          glare: true,
+          "max-glare": 0.2,
+      });
+  }
 
   startScanAnimation();
 
