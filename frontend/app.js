@@ -410,6 +410,9 @@ function clearAll() {
 function resetResults() {
   el.placeholderState.hidden = false;
   el.resultContent.hidden    = true;
+  // Hide rejection panel if it exists
+  const rejPanel = document.getElementById('rejectionContent');
+  if (rejPanel) rejPanel.hidden = true;
 }
 
 // ─── Webcam ───────────────────────────────────────────────────────────────────
@@ -451,55 +454,28 @@ function stopWebcam() {
 
 // ─── Sample Image ─────────────────────────────────────────────────────────────
 el.sampleBtn.addEventListener('click', async () => {
-  // Create a synthetic grayscale lung-like test image using canvas
-  showToast('Loading demo CT scan image…', 'info', 2000);
-  const canvas = document.createElement('canvas');
-  canvas.width  = 224;
-  canvas.height = 224;
-  const ctx = canvas.getContext('2d');
-
-  // Draw a convincing grayscale lung CT pattern
-  ctx.fillStyle = '#111';
-  ctx.fillRect(0, 0, 224, 224);
-
-  // Lung outline - left
-  ctx.beginPath();
-  ctx.ellipse(70, 112, 50, 80, -0.2, 0, Math.PI * 2);
-  ctx.fillStyle = '#3a3a3a';
-  ctx.fill();
-
-  // Lung outline - right
-  ctx.beginPath();
-  ctx.ellipse(154, 112, 50, 80, 0.2, 0, Math.PI * 2);
-  ctx.fillStyle = '#3a3a3a';
-  ctx.fill();
-
-  // Trachea / bronchi
-  ctx.fillStyle = '#555';
-  ctx.fillRect(107, 20, 10, 40);
-  ctx.fillRect(90, 58, 27, 8);
-
-  // Add gradient for 3D effect
-  const grad = ctx.createRadialGradient(70, 95, 5, 70, 95, 55);
-  grad.addColorStop(0, 'rgba(200,200,200,0.3)');
-  grad.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, 224, 224);
-
-  // Some noise for realism
-  const imgData = ctx.getImageData(0, 0, 224, 224);
-  for (let i = 0; i < imgData.data.length; i += 4) {
-    const n = (Math.random() - 0.5) * 20;
-    imgData.data[i]     = Math.max(0, Math.min(255, imgData.data[i] + n));
-    imgData.data[i + 1] = imgData.data[i];
-    imgData.data[i + 2] = imgData.data[i];
-  }
-  ctx.putImageData(imgData, 0, 0);
-
-  canvas.toBlob(blob => {
+  showToast('Loading real CT scan from dataset…', 'info', 2000);
+  try {
+    const response = await fetch(`${API_BASE}/samples/training/Bengin cases/Bengin case (109).jpg`);
+    if (!response.ok) throw new Error('Could not load sample file');
+    const blob = await response.blob();
     const f = new File([blob], 'sample_ct_scan.jpg', { type: 'image/jpeg' });
     setFile(f);
-  }, 'image/jpeg', 0.9);
+  } catch (e) {
+    showToast('Failed to load real sample. Using synthetic method as fallback...', 'warning');
+    const canvas = document.createElement('canvas');
+    canvas.width  = 224;
+    canvas.height = 224;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#111';
+    ctx.fillRect(0, 0, 224, 224);
+    ctx.beginPath();
+    ctx.ellipse(112, 112, 80, 70, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = '#555';
+    ctx.lineWidth = 5;
+    ctx.stroke();
+    canvas.toBlob(b => setFile(new File([b], 'fallback_ct.jpg', { type: 'image/jpeg' })));
+  }
 });
 
 // ─── Analysis / Prediction ─────────────────────────────────────────────────────
@@ -511,7 +487,7 @@ async function analyze() {
   // Set loading state
   el.analyzeBtn.disabled       = true;
   el.analyzeBtnSpinner.classList.remove('hidden');
-  el.analyzeBtnText.textContent = 'Analyzing…';
+  el.analyzeBtnText.textContent = 'Validating & Analyzing…';
   
   if (visualizer3D) visualizer3D.setScanning(true);
 
@@ -525,13 +501,21 @@ async function analyze() {
       signal: AbortSignal.timeout(30000),
     });
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
-      throw new Error(err.detail || `HTTP ${res.status}`);
+    const data = await res.json();
+
+    // Handle CT scan validation rejection
+    if (!res.ok && data.error === 'not_ct_scan') {
+      renderRejection(data);
+      showToast('⚠️ Image rejected — not a valid CT scan', 'warning', 5000);
+      return;
     }
 
-    lastResult = await res.json();
-    renderResults(lastResult);
+    if (!res.ok) {
+      throw new Error(data.detail || `HTTP ${res.status}`);
+    }
+
+    lastResult = data;
+    renderResults(data);
     showToast('Analysis complete!', 'success');
 
     // Smooth scroll to results
@@ -547,10 +531,118 @@ async function analyze() {
   }
 }
 
+// ─── Rejection Rendering (Non-CT Image) ─────────────────────────────────────
+function renderRejection(data) {
+  el.placeholderState.hidden = true;
+  el.resultContent.hidden    = true;
+
+  // Create or get the rejection content container
+  let rejPanel = document.getElementById('rejectionContent');
+  if (!rejPanel) {
+    rejPanel = document.createElement('div');
+    rejPanel.id = 'rejectionContent';
+    rejPanel.className = 'rejection-content';
+    el.resultContent.parentNode.insertBefore(rejPanel, el.resultContent);
+  }
+  rejPanel.hidden = false;
+
+  const score = data.validation_score || 0;
+  const reasons = (data.details && data.details.rejection_reasons) || ['Image does not match CT scan characteristics'];
+  const details = data.details || {};
+
+  rejPanel.innerHTML = `
+    <div class="rejection-card">
+      <div class="rejection-card__icon">🚫</div>
+      <h3 class="rejection-card__title">Not a CT Scan Image</h3>
+      <p class="rejection-card__subtitle">${data.message || 'This image does not appear to be a lung CT scan.'}</p>
+      
+      <div class="rejection-score">
+        <div class="rejection-score__label">CT Similarity Score</div>
+        <div class="rejection-score__bar">
+          <div class="rejection-score__fill" style="width:0%" data-target="${score}"></div>
+        </div>
+        <div class="rejection-score__value">${score}%</div>
+        <div class="rejection-score__threshold">Minimum required: ${(details.threshold || 0.45) * 100}%</div>
+      </div>
+
+      <div class="rejection-reasons">
+        <h4 class="rejection-reasons__title">Why was this image rejected?</h4>
+        <ul class="rejection-reasons__list">
+          ${reasons.map(r => `<li>${r}</li>`).join('')}
+        </ul>
+      </div>
+
+      <div class="rejection-details">
+        <h4 class="rejection-reasons__title">Validation Checks</h4>
+        <div class="rejection-checks">
+          ${renderCheckRow('Grayscale', details.grayscale_score, '🔲')}
+          ${renderCheckRow('Aspect Ratio', details.aspect_score, '📐')}
+          ${renderCheckRow('Histogram', details.histogram_score, '📊')}
+          ${renderCheckRow('Background', details.background_score, '⬛')}
+          ${renderCheckRow('Circularity', details.circular_anatomy_score, '⭕')}
+          ${renderCheckRow('Symmetry', details.symmetry_score, '⚖️')}
+          ${renderCheckRow('Texture', details.texture_score, '🕸️')}
+          ${renderCheckRow('Frequency', details.spatial_freq_score, '〰️')}
+        </div>
+      </div>
+
+      <div class="rejection-suggestion">
+        <div class="rejection-suggestion__icon">💡</div>
+        <div>
+          <strong>What to upload instead:</strong>
+          <p>${data.suggestion || 'Please upload a proper lung CT scan image (grayscale, axial view).'}</p>
+        </div>
+      </div>
+
+      <div class="rejection-actions">
+        <button class="btn btn--primary btn--sm" id="rejectionRetryBtn">📷 Upload Different Image</button>
+        <button class="btn btn--ghost btn--sm" id="rejectionResetBtn">🔄 Reset</button>
+      </div>
+    </div>
+  `;
+
+  // Animate the score bar
+  setTimeout(() => {
+    const bar = rejPanel.querySelector('.rejection-score__fill');
+    if (bar) {
+      bar.style.transition = 'width 0.8s cubic-bezier(.4,0,.2,1)';
+      bar.style.width = bar.dataset.target + '%';
+    }
+  }, 50);
+
+  // Bind action buttons
+  const retryBtn = document.getElementById('rejectionRetryBtn');
+  const resetBtn = document.getElementById('rejectionResetBtn');
+  if (retryBtn) retryBtn.addEventListener('click', () => { clearAll(); el.fileInput.click(); });
+  if (resetBtn) resetBtn.addEventListener('click', clearAll);
+
+  // Scroll to results panel
+  document.getElementById('resultsPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function renderCheckRow(label, score, icon) {
+  if (score === undefined) return '';
+  const pct = Math.round(score * 100);
+  const status = score >= 0.5 ? 'pass' : 'fail';
+  return `
+    <div class="rejection-check">
+      <span class="rejection-check__icon">${icon}</span>
+      <span class="rejection-check__label">${label}</span>
+      <div class="rejection-check__bar">
+        <div class="rejection-check__fill rejection-check__fill--${status}" style="width:${pct}%"></div>
+      </div>
+      <span class="rejection-check__value rejection-check__value--${status}">${pct}%</span>
+    </div>`;
+}
+
 // ─── Result Rendering ──────────────────────────────────────────────────────────
 function renderResults(data) {
   el.placeholderState.hidden = true;
   el.resultContent.hidden    = false;
+
+  // Hide rejection panel if present
+  const rejPanel = document.getElementById('rejectionContent');
+  if (rejPanel) rejPanel.hidden = true;
 
   // Card colours
   const riskColors = { HIGH: '#ef4444', MODERATE: '#f59e0b', LOW: '#22c55e' };
@@ -622,6 +714,7 @@ function renderResults(data) {
   // Meta row
   const modelsUsed = (data.models_used || []).join(', ') || 'Demo';
   el.metaRow.innerHTML = `
+    <div class="meta-chip meta-chip--valid">✅ CT Validated</div>
     <div class="meta-chip">⏱ ${data.inference_time_ms} ms</div>
     <div class="meta-chip">🧠 ${(data.models_used || []).length || 1} model(s)</div>
     <div class="meta-chip">🕐 ${new Date(data.timestamp).toLocaleTimeString()}</div>
