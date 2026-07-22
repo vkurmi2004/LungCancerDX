@@ -1,4 +1,8 @@
-# 🫁 LungCancerDX — Final Year Project
+# 🫁 LungCancerDX — AI-Powered Lung Cancer Detection System
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com/)
 
 > **AI-Powered Lung Cancer Detection from CT Scans**  
 > Ensemble of 5 deep learning models · CLAHE preprocessing · Grad-CAM visualisation · Real-time FastAPI backend · Premium interactive frontend
